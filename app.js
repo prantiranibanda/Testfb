@@ -9,6 +9,7 @@ import session from 'express-session';
 import passport from 'passport';
 import passportLocalMongoose from 'passport-local-mongoose';
 import GoogleS from 'passport-google-oauth20';
+import FacebookS from 'passport-facebook';
 import findOrCreate from 'mongoose-findorcreate';
 
 import ejs from 'ejs';
@@ -18,6 +19,7 @@ const app = express();
 const port = 3000;
 //const saltRounds = 10;
 const GoogleStrategy = GoogleS.Strategy;
+const FacebookStrategy = FacebookS.Strategy;
 
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
@@ -38,7 +40,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 const userSchema = new Schema({
     username: String,
     password: String,
-    googleId: String
+    googleId: String,
+    facebookId: String
 });
 
 userSchema.plugin(passportLocalMongoose); ////////
@@ -77,6 +80,19 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/secrets"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
 app.get("/", (req, res)=>{
     res.render("home");
 });
@@ -87,7 +103,16 @@ app.get('/auth/google',
 app.get('/auth/google/secrets', passport.authenticate('google', { failureRedirect: '/login' }), 
     (req, res)=>{
         res.redirect("/secrets");
-    });
+});
+
+app.get('/auth/facebook',
+    passport.authenticate('facebook', { scope: ['public_profile'] })); /////////////
+
+app.get('/auth/facebook/secrets',
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    (req, res)=>{
+        res.redirect('/secrets');
+});
 
 app.get("/login", (req, res)=>{
     res.render("login");
