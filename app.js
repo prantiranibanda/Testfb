@@ -13,7 +13,7 @@ import findOrCreate from 'mongoose-findorcreate';
 
 import ejs from 'ejs';
 
-//const env = dotenv.config();
+const env = dotenv.config();
 const app = express();
 const port = 3000;
 //const saltRounds = 10;
